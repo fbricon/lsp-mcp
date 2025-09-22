@@ -61,17 +61,17 @@ export class App {
     this.mcp.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const { name, arguments: args } = request.params;
       try {
-      if (!args) {
-        throw new Error("No arguments");
-      }
+        if (!args) {
+          throw new Error("No arguments");
+        }
 
-      const result = await this.toolManager.callTool(name, args, extra);
-      const serialized =
-        typeof result === "string" ? result : JSON.stringify(result, null, 2);
+        const result = await this.toolManager.callTool(name, args, extra);
+        const serialized =
+          typeof result === "string" ? result : JSON.stringify(result, null, 2);
 
-      return {
-        content: [{ type: "text", text: serialized }],
-      };
+        return {
+            content: [{ type: "text", text: serialized }],
+        };
       } catch (error) {
           this.logger.error(`Error calling tool ${name}`);
           this.logger.error(error instanceof Error ? error.stack ?? String(error) : String(error));
@@ -113,13 +113,13 @@ export class App {
       inputSchema: {
         type: "object" as "object",
         properties: {
-        file: {
-          type: "string",
-          description: "The specific file to get diagnostics for. If not specified, will get diagnostics for all modified files.",
-        },
-        page: {
-          type: "integer",
-          description: "Specifies which page of results to retrieve when there are more results than can fit in a single response. The first page is 0 and is the default.",
+          file: {
+            type: "string",
+            description: "The specific file to get diagnostics for. If not specified, will get diagnostics for all modified files.",
+          },
+          page: {
+            type: "integer",
+            description: "Specifies which page of results to retrieve when there are more results than can fit in a single response. The first page is 0 and is the default.",
           },
         },
         required: []
@@ -267,8 +267,8 @@ export class App {
       }
     }))
     await this.registerTools(),
-      await this.initializeMcp(),
-      await startMcp(this.mcp, transport);
+    await this.initializeMcp(),
+    await startMcp(this.mcp, transport);
   }
 
   public async openFile(path: string) {

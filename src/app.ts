@@ -119,7 +119,6 @@ export class App {
         },
         page: {
           type: "integer",
-          name: "page",
           description: "Specifies which page of results to retrieve when there are more results than can fit in a single response. The first page is 0 and is the default.",
           },
         },
@@ -178,7 +177,6 @@ export class App {
     const lsps = this.lspManager.getLsps();
     const lspProperty: JSONSchema4 | undefined = lsps.length > 1 ? {
       type: "string",
-      name: "lsp",
       description: "The LSP to use to execute this method. Options are: " +
         lsps.map((lsp) => `  ${lsp.id} for the programming languages ${lsp.languages.join(", ")}`).join("\n"),
       enum: lsps.map((lsp) => lsp.id)
@@ -201,7 +199,6 @@ export class App {
         if (pagination) {
           inputSchema.properties["page"] = {
             type: "integer",
-            name: "page",
             description: "When there are more results than can fit in a single response, this will return a token that can be used to get the next page of results. The first page is 0 and is the default.",
           }
         }
@@ -210,7 +207,7 @@ export class App {
       // If we're set up with more than one LSP, we'll request the LSP to be optionally specified
       // If it isn't specified, we'll have to use some logic to figure out which LSP to use
       if (lspProperty && inputSchema.properties) {
-        inputSchema.properties[lspProperty.name] = lspProperty;
+        inputSchema.properties["lsp"] = lspProperty;
       }
       const toolId = method.id.replace("/", "_")
 

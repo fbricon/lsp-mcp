@@ -69,7 +69,18 @@ export class LspClientImpl implements LspClient {
     this.pendingProgress = new Map();
     this.locks = new Map()
     this.previousDiagnostics = new Map();
-    this.fileWatcher = new FileWatcher(extensions, this.workspace, this.logger, (uri) => this.openFileContents(uri), (uri) => this.sendDidClose(uri), (uri) => this.openFileContents(uri));
+    this.fileWatcher = new FileWatcher(extensions, this.workspace, this.logger,
+      async (uri) =>  { // File changed
+        await this.openFileContents(uri);
+      },
+      async (uri) => { // File removed
+        await this.sendDidClose(uri);
+        await this.sendDidChangeWatchedFiles(uri, protocol.FileChangeType.Deleted);
+      },
+      async (uri) => { // File created
+        await this.sendDidChangeWatchedFiles(uri, protocol.FileChangeType.Created);
+        await this.openFileContents(uri);
+      });
   }
   async spawnChildProcess(): Promise<{
     connection: rpc.MessageConnection;
@@ -346,6 +357,20 @@ export class LspClientImpl implements LspClient {
       delete this.files[uri]
     }
   }
+
+  async sendDidChangeWatchedFiles(uri: string, type: protocol.FileChangeType) {
+    this.logger.info(`LSP: Sending sendDidChangeWatchedFiles for ${uri}`);
+    await this.sendNotification(
+      protocol.DidChangeWatchedFilesNotification.method,
+      {
+        changes: [{
+          type: type,
+          uri: uri,
+        }],
+    },
+    );
+  }
+
   async sendDidOpen(uri: string, contents: string) {
     this.logger.info(`LSP: Sending didOpen for ${uri}`);
     await this.sendNotification(
@@ -509,6 +534,7 @@ export class LspClientImpl implements LspClient {
     const identifier = this.files[uri].diagnosticId ?? uuid()
     this.files[uri].diagnosticId = identifier
     const previousResultId = this.files[uri].previousDiagnosticId
+    //FIXME need to check if the LS supports `textDocument/diagnostic` requests
     const result = await this.connection.sendRequest(protocol.DocumentDiagnosticRequest.type, {
       textDocument: {
         uri

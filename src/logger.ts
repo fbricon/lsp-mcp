@@ -1,4 +1,9 @@
 import { Logger } from "vscode-jsonrpc";
+import * as fs from "fs";
+
+export interface DisposableLogger extends Logger {
+  dispose(): Promise<void>;
+}
 
 function formatMessage(message: string) {
   if (!message.endsWith("\n")) {
@@ -48,3 +53,27 @@ export const nullLogger: Logger = {
   log: (message: string) => {
   },
 };
+
+export function createFileLogger(logFile: string): DisposableLogger {
+  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+  return {
+    error: (message: string) => {
+      logStream.write(formatMessage(message));
+    },
+    warn: (message: string) => {
+      logStream.write(formatMessage(message));
+    },
+    info: (message: string) => {
+      logStream.write(formatMessage(message));
+    },
+    log: (message: string) => {
+      logStream.write(formatMessage(message));
+    },
+    dispose: async () => {
+      return new Promise((resolve) => {
+        logStream.end(resolve);
+      });
+    },
+  };
+}

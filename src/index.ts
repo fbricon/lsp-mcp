@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { nullLogger, errorLogger } from "./logger";
+import { nullLogger, errorLogger, createFileLogger } from "./logger";
 import { Command, OptionValues } from "commander";
 import { Config, loadConfig } from "./config";
 import { App } from "./app";
@@ -13,7 +13,7 @@ async function buildConfig(options: OptionValues, logger: Logger): Promise<Confi
     try {
       config = await loadConfig(options.config);
     } catch (e) {
-      logger.error(`Failed to parse config file ${options.config}`);
+      logger.error(`Failed to parse config file ${options.config}: ${e}`);
       process.exit(1);
     }
 
@@ -71,13 +71,19 @@ async function main() {
       "Path to the workspace to use for the LSP. Defaults to /"
     )
     .option("-v, --verbose", "Verbose output (Dev only, don't use with MCP)")
+    .option("--log-file <path>", "Path to a file to write logs to")
     .option("-c, --config [string]", "Path to config file")
     .parse(process.argv);
 
   const options = program.opts();
 
   // UGH i really need to start using a proper logging lib
-  const logger = options.verbose ? errorLogger : nullLogger;
+  let logger: Logger & Partial<{ dispose: () => Promise<void> }>;
+  if (options.logFile) {
+    logger = createFileLogger(options.logFile);
+  } else {
+    logger = options.verbose ? errorLogger : nullLogger;
+  }
   logger.info(`Running with: ${JSON.stringify(options)}`);
 
   const config = await buildConfig(options, logger);
@@ -89,6 +95,10 @@ async function main() {
   } catch (e: any) {
     logger.error(e.toString?.());
     process.exit(1);
+  } finally {
+    if (logger.dispose) {
+      await logger.dispose();
+    }
   }
 }
 

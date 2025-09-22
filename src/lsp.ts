@@ -93,7 +93,10 @@ export class LspClientImpl implements LspClient {
     return { connection, childProcess };
   }
   public async start() {
-    let { promise: started, resolve: startedResolve, reject: _ } = Promise.withResolvers<void>()
+    let startedResolve!: (value: void | PromiseLike<void>) => void;
+    let started = new Promise<void>((resolve) => {
+      startedResolve = resolve;
+    });
     this.started = started
     // TODO: This should return a promise if the LSP is still starting
     // Just don't call start() twice and it'll be fine :)
@@ -397,7 +400,10 @@ export class LspClientImpl implements LspClient {
 
   }
   updateFileEntry(uri: string, version: number, contents: string, previousDiagnosticId?: string): string {
-    const { promise: resolvedDiagnostics, resolve: reportDiagnostics, reject: _ } = Promise.withResolvers<protocol.Diagnostic[]>()
+    let reportDiagnostics!: (value: protocol.Diagnostic[] | PromiseLike<protocol.Diagnostic[]>) => void;
+    const resolvedDiagnostics = new Promise<protocol.Diagnostic[]>((resolve) => {
+      reportDiagnostics = resolve;
+    });
     this.files[uri] = { content: contents, version, resolvedDiagnostics, reportDiagnostics, previousDiagnosticId, diagnosticId: undefined };
     return contents
 

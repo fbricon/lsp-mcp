@@ -378,7 +378,7 @@ export class LspClientImpl implements LspClient {
       {
         textDocument: {
           uri: uri,
-          languageId: "typescriptreact",
+          languageId: getLanguageId(uri),
           version: 1,
           text: contents,
         },
@@ -641,3 +641,11 @@ export class LspClientImpl implements LspClient {
     }
   }
 }
+function getLanguageId(uri: string) { //FIXME needs better mapping, maybe from the LSP? See https://code.visualstudio.com/docs/languages/identifiers
+  const extension = uri.split(".").pop();
+  if (extension) {
+    return extension.toLowerCase();
+  }
+  return "plaintext";
+}
+

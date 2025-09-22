@@ -17,7 +17,26 @@ async function readGitIgnore(
 				line =>
 					line.trim() !== "" && !line.startsWith("#") && !line.startsWith("!"), // Negated patterns don't work.
 			)
-			.map(pattern => (pattern.startsWith("/") ? pattern.slice(1) : pattern))
+			.flatMap(pattern => {
+				// Remove leading slash if present
+				if (pattern.startsWith("/")) {
+					pattern = pattern.slice(1)
+				}
+
+				// Convert gitignore patterns to glob patterns for @parcel/watcher
+				if (pattern.endsWith("/")) {
+					// Directory pattern: "target/" -> ["target/**", "**/target/**"]
+					// This matches both root-level and nested directories
+					const dirName = pattern.slice(0, -1) // Remove trailing slash
+					return [`${dirName}/**`, `**/${dirName}/**`]
+				} else if (pattern.includes("*")) {
+					// Already a glob pattern, keep as is
+					return pattern
+				} else {
+					// File or directory name: "META-INF" -> "META-INF" and "**/META-INF/**"
+					return [pattern, `**/${pattern}/**`]
+				}
+			}) // Flatten the array since some patterns return arrays
 	} catch (e: unknown) {
 		if (e instanceof Error) {
 			logger.error(e.stack || e.toString?.())
@@ -43,7 +62,11 @@ export class FileWatcher {
 	}
 	queueEvents(events: Event[]) {
 		for (const fs_event of events) {
-			if (!this.extensions.some(ext => fs_event.path.endsWith(ext))) {
+			// If no extensions are provided, we want to queue all events, else we only queue events for the given extensions
+			if (
+				this.extensions.length > 0 &&
+				!this.extensions.some(ext => fs_event.path.endsWith(ext))
+			) {
 				continue
 			}
 			this.logger.info(`Event: ${fs_event.type} ${fs_event.path}`)
@@ -64,14 +87,23 @@ export class FileWatcher {
 						const uri = pathToFileUri(path)
 						switch (type) {
 							case "update":
+								this.logger.info(
+									`FileWatcher: Received update event for ${path}`,
+								)
 								if (!events.some(e => e.type === "create" && e.path === path)) {
 									await this.onFileChanged(uri)
 								}
 								break
 							case "create":
+								this.logger.info(
+									`FileWatcher: Received create event for ${path}`,
+								)
 								await this.onFileCreated(uri)
 								break
 							case "delete":
+								this.logger.info(
+									`FileWatcher: Received delete event for ${path}`,
+								)
 								await this.onFileRemoved(uri)
 								break
 						}
@@ -88,6 +120,7 @@ export class FileWatcher {
 	async start() {
 		this.logger.info(`Reading gitignore from ${this.root}`)
 		const gitignore = await readGitIgnore(this.logger, this.root)
+		const ignored = ["**/.git/**", ...gitignore]
 		this.logger.info(
 			`Starting file watcher for ${JSON.stringify(this.root)} with extensions ${JSON.stringify(this.extensions)}`,
 		)
@@ -98,10 +131,13 @@ export class FileWatcher {
 				if (err !== null) {
 					this.logger.error(`Watcher error: ${err}`)
 				}
+				this.logger.info(
+					`FileWatcher: Received events: ${JSON.stringify(events, null, 2)}`,
+				)
 				this.queueEvents(events)
 			},
 			{
-				ignore: gitignore,
+				ignore: ignored,
 			},
 		)
 		this.logger.info("Started file watcher")

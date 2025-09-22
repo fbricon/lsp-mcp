@@ -116,6 +116,56 @@ Follow the instructions [provided by Cursor](https://docs.cursor.com/context/mod
 ### [MCP CLI Client](https://github.com/adhikasp/mcp-client-cli)
 Follow the instructions for Claude but the config file is located in `~/.llm/config.json`
 
+### Gemini CLI
+Using Eclipse JDT.LS in Gemini CLI. Add the following to your `~/.gemini/settings.json`:
+```json
+{
+  "folderTrust": true,
+  "selectedAuthType": "oauth-personal",
+  "mcpServers": {
+    "Java LSP": {
+      "command": "/path/to/nodejs/22.x/bin/node",
+      "args": [
+        "/path/to/lsp-mcp/dist/index.js",
+        "--log-file",
+        "/tmp/lsp-mcp/java.txt",
+        "--lsp",
+        "/path/to/lsp-mcp/launch-java.sh",
+        "--workspace",
+        "/path/to/workspace"
+      ],
+      "env": {
+        "JDTLS_HOME": "/path/to/jdtls-latest",
+        "JDTLS_CONFIGURATION": "/path/to/jdtls-configuration",
+        "JDTLS_DATA": "/path/to/jdtls-data"
+      },
+      "timeout": 15000
+    }
+  }
+}
+```
+
+* JDTLS_HOME: Path to the JDT.LS installation., default to `~/Downloads/jdtls-latest`
+* JDTLS_CONFIGURATION: Path to the JDT.LS configuration, default to `~/.cache/jdtls-mcp`
+* JDTLS_DATA: Path to the JDT.LS data, default to `/tmp/jdtls-mcp`
+
+`launch-java.sh` will download the JDT.LS if it's not already present. You can also download it manually and set the `JDTLS_HOME` environment variable.
+
+For now you need to hardcode the path to the workspace in the MCP server config.
+
+### MCP Inspector
+Using MCP Inspector to test the MCP server commands:
+```bash
+cd /path/to/lsp-mcp
+npx @modelcontextprotocol/inspector /path/to/nodejs/22.x/bin/node  $(pwd)/dist/index.js --log-file /tmp/lsp-mcp/java.txt --lsp $(pwd)/launch-java.sh
+```
+
+### MCP CLI Client
+Using MCP CLI Client to test the MCP server commands:
+```bash
+mcp-client-cli --config dev/dev.config.json
+```
+
 
 ## The ABCs (Introduction)
 ### What is an MCP?

@@ -330,6 +330,7 @@ export class LspClientImpl implements LspClient {
     return await this.connection.sendNotification(method, args);
   }
   async sendDidClose(uri: string) {
+    this.logger.info(`LSP: Sending didClose for ${uri}`);
     if (this.files && uri in this.files) {
       await this.sendNotification(
         protocol.DidCloseTextDocumentNotification.method,
@@ -343,6 +344,7 @@ export class LspClientImpl implements LspClient {
     }
   }
   async sendDidOpen(uri: string, contents: string) {
+    this.logger.info(`LSP: Sending didOpen for ${uri}`);
     await this.sendNotification(
       protocol.DidOpenTextDocumentNotification.method,
       {
@@ -357,6 +359,7 @@ export class LspClientImpl implements LspClient {
 
   }
   async sendDidChange(uri: string, contents: string, oldContents: string, version: number) {
+    this.logger.info(`LSP: Sending didChange for ${uri}`);
     const split = oldContents.split("\n")
     await this.sendNotification(
       protocol.DidChangeTextDocumentNotification.method,
@@ -379,6 +382,7 @@ export class LspClientImpl implements LspClient {
 
   }
   async sendDidSave(uri: string, contents: string) {
+    this.logger.info(`LSP: Sending didSave for ${uri}`);
     if (typeof this.capabilities?.textDocumentSync === "object" && this.capabilities?.textDocumentSync?.save) {
       await this.sendNotification(
         protocol.DidSaveTextDocumentNotification.method,
@@ -579,7 +583,7 @@ export class LspClientImpl implements LspClient {
   }
   handleDiagnostics(notification: protocol.PublishDiagnosticsParams): void {
     if (notification.uri in this.files) {
-      this.logger.log(`LSP: Recieved Diagnostics for file ${notification.uri}`);
+      this.logger.log(`LSP: Received Diagnostics for file ${notification.uri}`);
       if (notification.version && notification.version !== this.files[notification.uri].version) {
         this.logger.warn("Rejecting outdated diagnostics for " + notification.uri)
         return
@@ -587,7 +591,7 @@ export class LspClientImpl implements LspClient {
       this.files[notification.uri].reportDiagnostics(notification.diagnostics)
       this.queueAllDiagnostics([], 10000) // Wait  10 seconds. Sometimes vtsls will only send diagnostics for files with errors when diagnostics are requested for multiple files
     } else {
-      this.logger.info("LSP: Recieved diagnostics for file wasn't opened " + notification.uri)
+      this.logger.info("LSP: Received diagnostics for file wasn't opened " + notification.uri)
       // There is a condition where we may open files A and B, but the LSP may report diagnostics for B and C.
       // To handle this, if we get an unknown file, we will wait for diagnostics to be reported on it. But if they aren't within 3000ms, we can use the file C diagnostics as a default.
       this.queueAllDiagnostics(notification.diagnostics, 3000)

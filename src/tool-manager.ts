@@ -24,7 +24,10 @@ export class ToolManager {
     if (!tool) {
       throw new Error(`Tool ${id} not found`);
     }
-    return tool.handler(args, extra);
+    this.logger.info(`Calling tool ${id} with args ${JSON.stringify(args)}`);
+    const result = tool.handler(args, extra);
+    this.logger.info(`Tool ${id} returned ${JSON.stringify(result)}`);
+    return result;
   }
 
   public getTools(): Tool[] {

@@ -60,6 +60,7 @@ export class App {
 
     this.mcp.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const { name, arguments: args } = request.params;
+      try {
       if (!args) {
         throw new Error("No arguments");
       }
@@ -71,6 +72,11 @@ export class App {
       return {
         content: [{ type: "text", text: serialized }],
       };
+      } catch (error) {
+          this.logger.error(`Error calling tool ${name}`);
+          this.logger.error(error instanceof Error ? error.stack ?? String(error) : String(error));
+          throw error;
+      }
     });
   }
 
